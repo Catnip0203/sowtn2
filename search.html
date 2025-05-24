@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>南二🐝🖜表單填寫紀錄</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(to bottom right, #f9f9f9, #e6f7ff);
+      color: #333;
+      padding: 40px 20px;
+      margin: 0;
+      text-align: center;
+    }
+    h1 {
+      font-size: 1.8em;
+      margin-bottom: 30px;
+      color: #3c6478;
+    }
+    .card {
+      background-color: white;
+      max-width: 500px;
+      margin: auto;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+    select, button {
+      width: 90%;
+      max-width: 400px;
+      margin: 10px auto;
+      padding: 10px 15px;
+      font-size: 1em;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.3s ease;
+    }
+    select:focus, button:focus {
+      border-color: #47a7f5;
+    }
+    button {
+      background-color: #47a7f5;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background-color: #358ddb;
+    }
+    ul#result {
+      list-style: none;
+      padding: 0;
+      margin-top: 20px;
+    }
+    ul#result li {
+      padding: 8px;
+      margin: 6px auto;
+      max-width: 400px;
+      border-radius: 8px;
+      background-color: #f1f8ff;
+      border-left: 6px solid #47a7f5;
+    }
+  </style>
+</head>
+<body>
+  <h1>
+    <a href="index.html" style="text-decoration: none; color: inherit;">
+      🐝 荒野保護協會親子團南二團（蜂 / 蟻）🐜
+    </a>
+  </h1>
+  <h1>📋 查詢表單填寫紀錄</h1>
+  <div class="card">
+    <select id="group" onchange="updateTypeOptions()">
+      <option value="">請選擇類別</option>
+      <option value="bee">🐝 蜂</option>
+      <option value="ant">🐜 蟻</option>
+    </select>
+
+    <select id="type" onchange="updateUserOptions()" disabled>
+      <option value="">請先選擇上方類別</option>
+    </select>
+
+    <select id="username" disabled>
+      <option value="">請先選擇類型</option>
+    </select>
+
+    <button onclick="checkAllForms()">查詢</button>
+    
+    <div id="loading" style="margin-top: 20px; font-size: 1.1em; color: #888;"></div>
+    <ul id="result"></ul>
+  </div>
+
+  <script src="team-data113.js"></script>
+  <script>
+    function updateTypeOptions() {
+      const group = document.getElementById("group").value;
+      const typeSelect = document.getElementById("type");
+      const userSelect = document.getElementById("username");
+
+      typeSelect.innerHTML = "";
+      userSelect.innerHTML = "";
+      userSelect.disabled = true;
+
+      if (group && userOptions[group]) {
+        typeSelect.disabled = false;
+        const types = Object.keys(userOptions[group]);
+        types.forEach(type => {
+          const option = document.createElement("option");
+          option.value = type;
+          option.textContent = type;
+          typeSelect.appendChild(option);
+        });
+      } else {
+        typeSelect.disabled = true;
+        const option = document.createElement("option");
+        option.textContent = "請先選擇上方類別";
+        typeSelect.appendChild(option);
+      }
+    }
+
+    function updateUserOptions() {
+      const group = document.getElementById("group").value;
+      const type = document.getElementById("type").value;
+      const userSelect = document.getElementById("username");
+
+      userSelect.innerHTML = "";
+
+      if (group && type && userOptions[group][type]) {
+        userSelect.disabled = false;
+        userOptions[group][type].forEach(user => {
+          const option = document.createElement("option");
+          option.value = user;
+          option.textContent = user;
+          userSelect.appendChild(option);
+        });
+        userSelect.selectedIndex = 0;
+      } else {
+        userSelect.disabled = true;
+        const option = document.createElement("option");
+        option.textContent = "請先選擇類型";
+        userSelect.appendChild(option);
+      }
+    }
+
+    function fetchWithTimeout(url, timeout = 5000) {
+      return Promise.race([
+        fetch(url),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Timeout")), timeout)
+        )
+      ]);
+    }
+
+    const sheets = [
+      {
+        name: "報名表單4月",
+        url: "https://opensheet.elk.sh/1RnOIVLLOJHf2jIGE6oGeWcpBi7Y-zkZSModJSsDMEgQ/表單回應%201"
+      },
+      {
+        name: "報名表單5月",
+        url: "https://opensheet.elk.sh/11519XBhCQ1wpgId8obqyZsn3oBI1tTCuzd2tQOvIGP0/表單回應%201"
+      }
+    ];
+
+    async function checkAllForms() {
+      const name = document.getElementById("username").value.trim();
+      const resultList = document.getElementById("result");
+      const loading = document.getElementById("loading");
+
+      resultList.innerHTML = "";
+      if (loading) loading.textContent = "🔍 查詢中，請稍候...";
+
+      for (let sheet of sheets) {
+        const li = document.createElement("li");
+        try {
+          const res = await fetchWithTimeout(sheet.url + "?t=" + Date.now(), 5000);
+          if (!res.ok) throw new Error("無法連接");
+          const data = await res.json();
+
+          const matchedRows = data.filter(row => {
+            const values = Object.values(row);
+            return values[1] && values[1].includes(name);
+          });
+
+          if (matchedRows.length > 0) {
+            li.innerHTML = `<strong>${sheet.name}：✅ 有填寫</strong><br/>`;
+            matchedRows.forEach((row, i) => {
+              const values = Object.values(row);
+              const entries = [];
+              for (let j = 0; j < 3; j++) {
+                const childName = values[2 + j * 3];
+                const squadName = values[3 + j * 3];
+                const status = values[4 + j * 3];
+                if (squadName || childName || status) {
+                  entries.push(`${squadName || '無小隊名'}/${childName || '無小孩名'}/${status || '無出席狀態'}`);
+                }
+              }
+              if (entries.length > 0) {
+                li.innerHTML += `📝 第 ${i + 1} 筆填寫內容：${entries.join("、")}<br/>`;
+              }
+            });
+          } else {
+            li.textContent = `${sheet.name}：❌ 無紀錄`;
+          }
+        } catch (error) {
+          li.textContent = `${sheet.name}：⚠️ 查詢失敗（${error.message === "Timeout" ? "連線逾時" : "無法讀取"}) ，可能是GOOGLE表單有問題，請稍後再試或請育導協助查詢`;
+        }
+        resultList.appendChild(li);
+      }
+      if (loading) loading.textContent = "";
+    }
+  </script>
+</body>
+</html>

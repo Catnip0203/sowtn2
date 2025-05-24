@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Test Supabase</title></head>
+<body>
+  <h1>📋 表單資料：</h1>
+  <pre id="result">Loading...</pre>
+
+  <script>
+    fetch("https://hsnzelxyqqtpenzaomsx.supabase.co/rest/v1/forms", {
+      headers: {
+        apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzbnplbHh5cXF0cGVuemFvbXN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2ODIwMTYsImV4cCI6MjA2MjI1ODAxNn0.nuulf2TwQMWKOKCZ9ZEDSR05hXTFXqBJgz8YF9BIQq4",
+        Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzbnplbHh5cXF0cGVuemFvbXN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2ODIwMTYsImV4cCI6MjA2MjI1ODAxNn0.nuulf2TwQMWKOKCZ9ZEDSR05hXTFXqBJgz8YF9BIQq4"
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+      })
+      .catch(err => {
+        document.getElementById("result").textContent = "❌ 錯誤：" + err.message;
+      });
+  </script>
+</body>
+</html>

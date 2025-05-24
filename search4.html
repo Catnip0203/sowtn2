@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>小隊出席狀況</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(to bottom right, #f9f9f9, #e6f7ff);
+      color: #333;
+      padding: 40px 20px;
+      margin: 0;
+      text-align: center;
+    }
+    h1 {
+      font-size: 1.8em;
+      margin-bottom: 30px;
+      color: #3c6478;
+    }
+    .card {
+      background-color: white;
+      max-width: 600px;
+      margin: auto;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+    select, button {
+      width: 90%;
+      max-width: 400px;
+      margin: 10px auto;
+      padding: 10px 15px;
+      font-size: 1em;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.3s ease;
+    }
+    select:focus, button:focus {
+      border-color: #47a7f5;
+    }
+    button {
+      background-color: #47a7f5;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background-color: #358ddb;
+    }
+    ul#result {
+      list-style: none;
+      padding: 0;
+      margin-top: 20px;
+    }
+    ul#result li {
+      padding: 8px;
+      margin: 6px auto;
+      max-width: 500px;
+      border-radius: 8px;
+      background-color: #f1f8ff;
+      border-left: 6px solid #47a7f5;
+      text-align: left;
+    }
+    .status-present { color: green; font-weight: bold; }
+    .status-absent { color: red; font-weight: bold; }
+    .status-unfilled { color: gray; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h1>
+    <a href="index3.html" style="text-decoration: none; color: inherit;">
+      🐝 荒野保護協會親子團南二團 小隊出席狀況 🐜
+    </a>
+  </h1>
+  <div class="card">
+    <select id="group" onchange="updateTypeOptions()">
+      <option value="">選擇團別</option>
+      <option value="bee">🐝 小蜂 🐝</option>
+      <option value="ant">🐜 小蟻 🐜</option>
+    </select>
+    <select id="type" onchange="checkTeamAttendance()" disabled>
+      <option value="">選擇小隊</option>
+    </select>
+    <div id="loading" style="margin-top: 20px; font-size: 1.1em; color: #888;"></div>
+    <ul id="result"></ul>
+  </div>
+
+  <script src="team-data113.js"></script>
+  <script>
+    const SHEET_URL = "https://opensheet.elk.sh/13v4T864SSZGSoNiIPGOY12mfzT2q5sbvDrarusC_zLE/%E8%9C%82%E8%9F%BB";
+
+    async function loadSheetsFromSheet() {
+      const res = await fetch(SHEET_URL);
+      const raw = await res.json();
+      return raw.map(item => ({
+        name: `${item.month} ${item.title}`,
+        url: convertToOpensheet(item.response_url)
+      }));
+    }
+
+    function convertToOpensheet(googleSheetUrl) {
+      const match = googleSheetUrl.match(/\/d\/(.*?)(\/|$)/);
+      const sheetId = match ? match[1] : "";
+      return `https://opensheet.elk.sh/${sheetId}/%E8%A1%A8%E5%96%AE%E5%9B%9E%E6%87%89%201`;
+    }
+
+    function updateTypeOptions() {
+      const group = document.getElementById("group").value;
+      const typeSelect = document.getElementById("type");
+      typeSelect.innerHTML = "";
+
+      if (group && userOptions[group]) {
+        typeSelect.disabled = false;
+        const types = Object.keys(userOptions[group]);
+        types.forEach(type => {
+          const option = document.createElement("option");
+          option.value = type;
+          option.textContent = type;
+          typeSelect.appendChild(option);
+        });
+      } else {
+        typeSelect.disabled = true;
+        const option = document.createElement("option");
+        option.textContent = "請先選擇上方類別";
+        typeSelect.appendChild(option);
+      }
+    }
+
+    function fetchWithTimeout(url, timeout = 5000) {
+      return Promise.race([
+        fetch(url),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeout))
+      ]);
+    }
+
+    async function checkTeamAttendance() {
+      const group = document.getElementById("group").value;
+      const type = document.getElementById("type").value;
+      const resultList = document.getElementById("result");
+      const loading = document.getElementById("loading");
+
+      resultList.innerHTML = "";
+      if (loading) loading.textContent = "🔍 查詢中，請稍候...";
+
+      if (!group || !type || !userOptions[group][type]) return;
+      const users = userOptions[group][type];
+
+      const sheets = await loadSheetsFromSheet();
+
+      for (let sheet of sheets) {
+        const userStatus = {};
+        users.forEach(name => userStatus[name] = { filled: false });
+
+        try {
+          const res = await fetchWithTimeout(sheet.url + "?t=" + Date.now(), 5000);
+          if (!res.ok) throw new Error("無法連接");
+          const data = await res.json();
+
+          data.forEach(row => {
+            const values = Object.values(row);
+            const username = values[1];
+            if (!username || !users.includes(username)) return;
+
+            for (let i = 0; i < 3; i++) {
+              const childName = values[2 + i * 3];
+              const squad = values[3 + i * 3];
+              const status = values[4 + i * 3];
+              if (squad === type) {
+                userStatus[username] = {
+                  filled: true,
+                  child: childName || '(未填小孩名)',
+                  status: status || '出席'
+                };
+              }
+            }
+          });
+        } catch (e) {
+          const li = document.createElement("li");
+          li.textContent = `${sheet.name}：⚠️ 查詢失敗（${e.message === "Timeout" ? "連線逾時" : "無法讀取"})`;
+          resultList.appendChild(li);
+          continue;
+        }
+
+        const header = document.createElement("li");
+        header.innerHTML = `<strong>${sheet.name}｜${type}小隊出席狀況：</strong>`;
+        header.style.backgroundColor = "#e0f0ff";
+        header.style.padding = "10px";
+        header.style.borderRadius = "8px";
+        header.style.fontSize = "1.1em";
+        header.style.fontWeight = "bold";
+        header.style.color = "#2a5d9f";
+        header.style.marginTop = "20px";
+        resultList.appendChild(header);
+
+        users.forEach(name => {
+          const li = document.createElement("li");
+          if (userStatus[name].filled) {
+            const isPresent = userStatus[name].status.includes("出席");
+            li.innerHTML = `${name}：${userStatus[name].child}/<span class="${isPresent ? 'status-present' : 'status-absent'}">${isPresent ? '✅ 出席' : '❌ 請假'}</span>`;
+          } else {
+            li.innerHTML = `${name}：<span class="status-unfilled">未填寫</span>`;
+          }
+          resultList.appendChild(li);
+        });
+      }
+      loading.textContent = "";
+    }
+  </script>
+</body>
+</html>

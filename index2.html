@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🐝 荒野親子南二團 🐜</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    h1 {
+      text-align: center;
+      background-color: #ffffff;
+      padding: 1.5em 1em;
+      margin: 0;
+      font-size: 1.8em;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      color: #4a5d23;
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 2em;
+      max-width: 1200px;
+      margin: auto;
+      gap: 2em;
+    }
+
+    .left-column {
+      flex: 1;
+      min-width: 300px;
+    }
+
+    .right-column {
+      flex: 0 0 250px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5em;
+    }
+
+    .form-box {
+      background: #e9f6f0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 6px 10px rgba(0, 0, 0, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-left: 5px solid #5ca08e;
+    }
+
+    .month {
+      font-size: 1.1em;
+      font-weight: bold;
+      color: #2c5d47;
+    }
+
+    .title {
+      font-size: 0.95em;
+      color: #555;
+    }
+
+    .btn {
+      background-color: #5ca08e;
+      color: white;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background 0.3s ease;
+    }
+
+    .btn:hover {
+      background-color: #468571;
+    }
+
+    .query-btn {
+      background: #fdf6e3;
+      padding: 20px;
+      border-radius: 12px;
+      font-size: 1.1em;
+      text-align: center;
+      text-decoration: none;
+      color: #4a5d23;
+      border: 1px solid #ddd;
+      transition: background 0.3s ease;
+    }
+
+    .query-btn:hover {
+      background: #f5edcf;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+        padding: 1em;
+      }
+
+      .right-column {
+        flex: 1;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>
+    <a href="index3.html" style="text-decoration: none; color: inherit;">
+      荒野保護協會親子團南二團<br>🐝 （蜂 / 蟻）🐜
+    </a>
+  </h1>
+  <div class="container">
+    <div class="left-column" id="form-list">載入中...</div>
+    <div class="right-column">
+      <a class="query-btn" href="search3.html">🔎 查詢出席紀錄</a>
+      <a class="query-btn" href="search4.html">📋 小隊出席總覽</a>
+    </div>
+  </div>
+
+  <script>
+    const SHEET_URL = "https://opensheet.elk.sh/13v4T864SSZGSoNiIPGOY12mfzT2q5sbvDrarusC_zLE/%E8%9C%82%E8%9F%BB";
+
+    async function loadForms() {
+      const res = await fetch(SHEET_URL);
+      const data = await res.json();
+      const container = document.getElementById("form-list");
+      container.innerHTML = "";
+
+      data.sort((a, b) => a.month.localeCompare(b.month)); // 升序排序
+
+      data.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "form-box";
+        div.innerHTML = `
+          <div style="display: flex; flex-direction: column;">
+            <div class="month">${item.month}</div>
+            <div class="title">${item.title}</div>
+          </div>
+          <a class="btn" href="${item.form_url}" target="_blank">填寫表單</a>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    loadForms();
+  </script>
+</body>
+</html>
